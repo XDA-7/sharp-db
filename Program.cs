@@ -8,7 +8,29 @@ namespace SharpDb
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static void Main()
+        {
+        }
+
+        public static void Test02()
+        {
+            var node = new InternalNode();
+            node.AddNode(100, 5);
+            node.AddNode(101, 10);
+            node.AddNode(102, 15);
+            node.AddNode(103, 20);
+            node.AddNode(104, 25);
+            node.AddNode(105, 30);
+            node.AddNode(106, 28);
+            Console.WriteLine(node.GetUpperKey());
+            Console.WriteLine(node.GetNodeIndexForKey(18));
+            var serialized = node.Serialize();
+            node = new InternalNode(5, serialized);
+            Console.WriteLine(node.GetUpperKey());
+            Console.WriteLine(node.GetNodeIndexForKey(18));
+        }
+
+        public static void Test01()
         {
             using (var dbFile = MemoryMappedFile.CreateNew("Db", Constants.DbMaxSize))
             {

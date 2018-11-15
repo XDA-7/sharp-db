@@ -77,17 +77,10 @@ namespace SharpDb
                 var key = SerializeInt(rowKey);
                 var blob = SerializeBlob(dataRows[rowKey]);
 
-                for (var i  = 0; i < key.Length; i++)
-                {
-                    result[index] = key[i];
-                    index++;
-                }
-
-                for (var i = 0; i < blob.Length; i++)
-                {
-                    result[index] = blob[i];
-                    index++;
-                }
+                key.CopyTo(result, index);
+                index += 4;
+                blob.CopyTo(result, index);
+                index += blob.Length;
             }
 
             return result;
