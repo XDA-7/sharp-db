@@ -2,9 +2,13 @@ namespace SharpDb
 {
     public class InternalNode : Node
     {
-        private int[] upperKeyValues = new int[(Constants.PageSize / 8) - 1];
+        private static readonly int upperKeysLength = (Constants.PageSize / 8) - 1;
+
+        private static readonly int nodeIndicesLength = Constants.PageSize / 8;
+
+        private int[] upperKeyValues = new int[10];
         
-        private uint[] nodeIndices = new uint[Constants.PageSize / 8];
+        private uint[] nodeIndices = new uint[10];
 
         public InternalNode()
         {
@@ -94,6 +98,28 @@ namespace SharpDb
             {
                 upperKeyValues[nodeCursor] = shiftedUpperValue;
             }
+        }
+
+        public InternalNode Split(int maxKey)
+        {
+            var midPosition = nodeIndices.Length / 2;
+            var splitNodeIndices = new uint[nodeIndicesLength];
+            var splitUpperValues = new int[upperKeysLength];
+
+            var splitIndex = 0;
+            for (var i = midPosition + 1; i < upperKeyValues.Length; i++)
+            {
+                splitNodeIndices[splitIndex] = nodeIndices[i];
+                splitUpperValues[splitIndex] = upperKeyValues[i];
+                nodeIndices[i] = 0;
+                upperKeyValues[i] = 0;
+                splitIndex++;
+            }
+
+            splitNodeIndices[splitIndex] = nodeIndices[upperKeyValues.Length];
+            splitUpperValues[splitIndex] = maxKey;
+
+            return new InternalNode(splitNodeIndices, splitUpperValues);
         }
 
         protected override void DeserializeData(byte[] data, int index)

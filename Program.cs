@@ -10,6 +10,21 @@ namespace SharpDb
     {
         public static void Main()
         {
+            var node = new InternalNode();
+            node.AddNode(100, 1);
+            node.AddNode(101, 2);
+            node.AddNode(102, 3);
+            node.AddNode(103, 4);
+            node.AddNode(104, 5);
+            node.AddNode(105, 6);
+            node.AddNode(106, 7);
+            node.AddNode(107, 8);
+            node.AddNode(108, 9);
+            node.AddNode(109, 10);
+        }
+
+        public static void Test03()
+        {
         }
 
         public static void Test02()
