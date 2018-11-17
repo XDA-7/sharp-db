@@ -33,9 +33,13 @@ namespace SharpDb
 
         public bool CanFitDataRow(byte[] data) => (BytesUsed + data.Length + dataRowHeaderSize) < Constants.PageSize;
 
-        public LeafNode Split(int key, byte[] data)
+        // Split off and return the lower half in a new node
+        // We split off the lower half so that data about the upper key value of this node does not change
+        public LeafNode Split()
         {
-            var upperKeys = dataKeys.GetViewBetween(key, int.MaxValue);
+            var keyCount = dataKeys.Count / 2;
+            var upperKeys = new int[keyCount];
+            dataKeys.CopyTo(upperKeys, 0, keyCount);
             var splitNode = new LeafNode();
             foreach (var upperKey in upperKeys)
             {
@@ -44,7 +48,6 @@ namespace SharpDb
                 dataRows.Remove(upperKey);
             }
 
-            AddDataRow(key, data);
             return splitNode;
         }
 

@@ -17,19 +17,29 @@ namespace SharpDb
 
         public void InsertData(int key, byte[] data)
         {
+            var nodeStack = new Stack<InternalNode>();
+            var currentNode = root;
+            while (currentNode is InternalNode)
+            {
+                var currentInternalNode = (InternalNode)currentNode;
+                nodeStack.Push(currentInternalNode);
+                var childNodeIndex = currentInternalNode.GetNodeIndexForKey(key);
+                currentNode = GetNode(childNodeIndex);
+            }
+
+            var leafNode = (LeafNode)currentNode;
+            if (leafNode.CanFitDataRow(data))
+            {
+                leafNode.AddDataRow(key, data);
+            }
+            else
+            {
+            }
         }
 
         public byte[] GetData(int key)
         {
             return new byte[0];
-        }
-
-        private void AddValueToTree(InternalNode internalNode, int key, byte[] data)
-        {
-        }
-
-        private void AddLeafNodeToInternalNode(InternalNode internalNode, int leafIndex, int key, byte[] data)
-        {
         }
 
         private Node GetNode(uint pageIndex) =>

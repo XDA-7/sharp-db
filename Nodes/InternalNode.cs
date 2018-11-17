@@ -1,14 +1,14 @@
+using System.Collections.Generic;
+
 namespace SharpDb
 {
     public class InternalNode : Node
     {
-        private static readonly int upperKeysLength = (Constants.PageSize / 8) - 1;
+        private static readonly int maxKeys = Constants.PageSize / 8;
 
-        private static readonly int nodeIndicesLength = Constants.PageSize / 8;
+        private Dictionary<int, uint> nodeIndices = new Dictionary<int, uint>();
 
-        private int[] upperKeyValues = new int[10];
-        
-        private uint[] nodeIndices = new uint[10];
+        private SortedSet<int> upperKeyValues = new SortedSet<int>();
 
         public InternalNode()
         {
@@ -22,115 +22,69 @@ namespace SharpDb
 
         public InternalNode(uint[] nodeIndices, int[] upperKeyValues)
         {
-            upperKeyValues.CopyTo(this.upperKeyValues, 0);
-            nodeIndices.CopyTo(this.nodeIndices, 0);
+            for (var i = 0; i < nodeIndices.Length; i++)
+            {
+                this.nodeIndices.Add(upperKeyValues[i], nodeIndices[i]);
+            }
         }
 
         public uint GetNodeIndexForKey(int key)
         {
-            for (var i = 0; i < upperKeyValues.Length; i++)
+            foreach (var upperValue in upperKeyValues)
             {
-                if (upperKeyValues[i] >= key)
+                if (upperValue > key)
                 {
-                    return nodeIndices[i];
+                    return nodeIndices[upperValue];
                 }
             }
 
-            return nodeIndices[upperKeyValues.Length];
+            return 0;
         }
 
-        public bool IsFull() => nodeIndices[nodeIndices.Length - 1] != 0;
+        public bool IsFull() => nodeIndices.Count == maxKeys;
 
-        public int GetUpperKey()
-        {
-            for (var i = 0; i < nodeIndices.Length; i++)
-            {
-                if (nodeIndices[i] == 0)
-                {
-                    return upperKeyValues[i - 1];
-                }
-            }
-
-            return upperKeyValues[nodeIndices.Length];
-        }
-
-        // Invariant: The last node index will be 0, this can be guaranteed by a check against IsFull
         public void AddNode(uint pageIndex, int upperKey)
         {
-            var desiredNodePosition = 0;
-            for (; desiredNodePosition <= upperKeyValues.Length; desiredNodePosition++)
-            {
-                // If we're on the final node then just assign it to the end, the upper value goes nowhere
-                if (desiredNodePosition == upperKeyValues.Length)
-                {
-                    nodeIndices[desiredNodePosition] = pageIndex;
-                    return;  
-                }
-                else if (nodeIndices[desiredNodePosition] == 0 || upperKeyValues[desiredNodePosition] > upperKey)
-                {
-                    break;
-                }
-            }
-
-            // Shift every node-value pair right of the desired position up one
-            uint shiftedIndex = nodeIndices[desiredNodePosition];
-            int shiftedUpperValue = upperKeyValues[desiredNodePosition];
-            // Insert the value into the newly vacated spot
-            nodeIndices[desiredNodePosition] = pageIndex;
-            upperKeyValues[desiredNodePosition] = upperKey;
-
-            var nodeCursor = desiredNodePosition + 1;
-            while(nodeIndices[nodeCursor] != 0)
-            {
-                uint tempIndex = nodeIndices[nodeCursor];
-                int tempValue = upperKeyValues[nodeCursor];
-                nodeIndices[nodeCursor] = shiftedIndex;
-                upperKeyValues[nodeCursor] = shiftedUpperValue;
-                shiftedIndex = tempIndex;
-                shiftedUpperValue = tempValue;
-                nodeCursor++;
-            }
-
-            // The final value shift.
-            // If the end of the node has been reached then the upper value falls off the edge
-            nodeIndices[nodeCursor] = shiftedIndex;
-            if (nodeCursor < upperKeyValues.Length)
-            {
-                upperKeyValues[nodeCursor] = shiftedUpperValue;
-            }
+            upperKeyValues.Add(upperKey);
+            nodeIndices.Add(upperKey, pageIndex);
         }
 
-        public InternalNode Split(int maxKey)
+        // Split off and return the lower half in a new node
+        // We split off the lower half so that data about the upper key value of this node does not change
+        public InternalNode Split()
         {
-            var midPosition = nodeIndices.Length / 2;
-            var splitNodeIndices = new uint[nodeIndicesLength];
-            var splitUpperValues = new int[upperKeysLength];
-
-            var splitIndex = 0;
-            for (var i = midPosition + 1; i < upperKeyValues.Length; i++)
+            var nodeCount = upperKeyValues.Count / 2;
+            var splitKeys = new int[nodeCount];
+            upperKeyValues.CopyTo(splitKeys, 0, nodeCount);
+            var splitNode = new InternalNode();
+            foreach (var upperKey in splitKeys)
             {
-                splitNodeIndices[splitIndex] = nodeIndices[i];
-                splitUpperValues[splitIndex] = upperKeyValues[i];
-                nodeIndices[i] = 0;
-                upperKeyValues[i] = 0;
-                splitIndex++;
+                splitNode.AddNode(nodeIndices[upperKey], upperKey);
+                nodeIndices.Remove(upperKey);
+                upperKeyValues.Remove(upperKey);
             }
 
-            splitNodeIndices[splitIndex] = nodeIndices[upperKeyValues.Length];
-            splitUpperValues[splitIndex] = maxKey;
-
-            return new InternalNode(splitNodeIndices, splitUpperValues);
+            return splitNode;
         }
 
         protected override void DeserializeData(byte[] data, int index)
         {
-            for (var i = 0; i < upperKeyValues.Length; i++)
+            for (var i = 0; i < maxKeys; i++)
             {
-                nodeIndices[i] = (uint)DeserializeInt(data, ref index);
-                upperKeyValues[i] = DeserializeInt(data, ref index);
+                var pageIndex = (uint)DeserializeInt(data, ref index);
+                var upperKey = DeserializeInt(data, ref index);
+                if (upperKey != 0)
+                {
+                    nodeIndices.Add(upperKey, pageIndex);
+                    upperKeyValues.Add(upperKey);
+                }
+                else
+                {
+                    nodeIndices.Add(int.MaxValue, pageIndex);
+                    upperKeyValues.Add(int.MaxValue);
+                    break;
+                }
             }
-
-            nodeIndices[upperKeyValues.Length] = (uint)DeserializeInt(data, ref index);
         }
 
         public override byte[] Serialize()
@@ -139,17 +93,19 @@ namespace SharpDb
             result[0] = 0; // Is not leaf
             var resultIndex = 1;
             var copyArray = new byte[4];
-            for (var i = 0; i < upperKeyValues.Length; i++)
+            var maxKey = upperKeyValues.Max; // Do the last node separately as we don't serialize the upper key for it
+            upperKeyValues.Remove(maxKey);
+            foreach (var keyValue in upperKeyValues)
             {
-                copyArray = SerializeInt((int)nodeIndices[i]);
+                copyArray = SerializeInt((int)nodeIndices[keyValue]);
                 copyArray.CopyTo(result, resultIndex);
                 resultIndex += 4;
-                copyArray = SerializeInt(upperKeyValues[i]);
+                copyArray = SerializeInt(keyValue);
                 copyArray.CopyTo(result, resultIndex);
                 resultIndex += 4;
             }
 
-            copyArray = SerializeInt((int)nodeIndices[upperKeyValues.Length]);
+            copyArray = SerializeInt((int)nodeIndices[maxKey]);
             copyArray.CopyTo(result, resultIndex);
             
             return result;

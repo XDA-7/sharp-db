@@ -10,21 +10,33 @@ namespace SharpDb
     {
         public static void Main()
         {
-            var node = new InternalNode();
-            node.AddNode(100, 1);
-            node.AddNode(101, 2);
-            node.AddNode(102, 3);
-            node.AddNode(103, 4);
-            node.AddNode(104, 5);
-            node.AddNode(105, 6);
-            node.AddNode(106, 7);
-            node.AddNode(107, 8);
-            node.AddNode(108, 9);
-            node.AddNode(109, 10);
         }
 
         public static void Test03()
         {
+            var intNode = new InternalNode();
+            intNode.AddNode(100, 5);
+            intNode.AddNode(101, 10);
+            intNode.AddNode(102, 15);
+            intNode.AddNode(103, 20);
+            intNode.AddNode(104, 25);
+            intNode.AddNode(105, 30);
+            var split = intNode.Split();
+            Console.WriteLine(intNode.GetNodeIndexForKey(28));
+            Console.WriteLine(split.GetNodeIndexForKey(28));
+            var leafNode = new LeafNode();
+            leafNode.AddDataRow(50, new byte[] { 1 });
+            leafNode.AddDataRow(100, new byte[] { 2 });
+            leafNode.AddDataRow(150, new byte[] { 3 });
+            leafNode.AddDataRow(200, new byte[] { 4 });
+            leafNode.AddDataRow(250, new byte[] { 5 });
+            leafNode.AddDataRow(300, new byte[] { 6 });
+            leafNode.AddDataRow(350, new byte[] { 7 });
+            leafNode.AddDataRow(400, new byte[] { 8 });
+            Console.WriteLine(leafNode.GetDataRow(350)[0]);
+            var leafSplit = leafNode.Split();
+            Console.WriteLine(leafNode.GetDataRow(350)[0]);
+            Console.WriteLine(leafSplit.GetDataRow(350).Length);
         }
 
         public static void Test02()
@@ -37,11 +49,9 @@ namespace SharpDb
             node.AddNode(104, 25);
             node.AddNode(105, 30);
             node.AddNode(106, 28);
-            Console.WriteLine(node.GetUpperKey());
             Console.WriteLine(node.GetNodeIndexForKey(18));
             var serialized = node.Serialize();
             node = new InternalNode(5, serialized);
-            Console.WriteLine(node.GetUpperKey());
             Console.WriteLine(node.GetNodeIndexForKey(18));
         }
 
