@@ -57,14 +57,13 @@ namespace SharpDb
                 }
                 else // Keep splitting internal nodes and adding them to the parent until reaching one that can fit a new node without splitting
                 {
-                    System.Console.WriteLine("Iterative split");
-                    currentInternalNode.AddNode(leafNode.PageIndex, leafNode.GetLargestKey());
+                    currentInternalNode.AddNode(splitLeaf.PageIndex, splitLeaf.GetLargestKey());
 
                     var splitInternalNode = currentInternalNode.Split();
                     splitInternalNode.PageIndex = pager.NewNodeIndex();
                     nodeCache.Add(splitInternalNode.PageIndex, splitInternalNode);
 
-                    currentInternalNode = nodeStack.Pop();
+                    currentInternalNode = GetParentNode(nodeStack, currentInternalNode);
                     while (currentInternalNode.IsFull())
                     {
                         currentInternalNode.AddNode(splitInternalNode.PageIndex, splitInternalNode.GetLargestKey());
@@ -73,23 +72,28 @@ namespace SharpDb
                         splitInternalNode.PageIndex = pager.NewNodeIndex();
                         nodeCache.Add(splitInternalNode.PageIndex, splitInternalNode);
 
-                        if (nodeStack.Count != 0)
-                        {
-                            currentInternalNode = nodeStack.Pop();
-                        }
-                        else // The root node has been reached, create a new root node
-                        {
-                            root = new InternalNode();
-                            root.PageIndex = pager.NewNodeIndex();
-                            nodeCache.Add(root.PageIndex, root);
-
-                            ((InternalNode)root).AddNode(currentInternalNode.PageIndex, currentInternalNode.GetLargestKey());
-                            ((InternalNode)root).AddNode(splitInternalNode.PageIndex, splitInternalNode.GetLargestKey());
-                        }
+                        currentInternalNode = GetParentNode(nodeStack, currentInternalNode);
                     }
 
                     currentInternalNode.AddNode(splitInternalNode.PageIndex, splitInternalNode.GetLargestKey());
                 }
+            }
+        }
+
+        private InternalNode GetParentNode(Stack<InternalNode> nodeStack, InternalNode currentInternalNode)
+        {
+            if (nodeStack.Count != 0)
+            {
+                return nodeStack.Pop();
+            }
+            else // The root node has been reached, create a new root node
+            {
+                root = new InternalNode();
+                root.PageIndex = pager.NewNodeIndex();
+                nodeCache.Add(root.PageIndex, root);
+
+                ((InternalNode)root).AddNode(currentInternalNode.PageIndex, currentInternalNode.GetLargestKey());
+                return (InternalNode)root;
             }
         }
 

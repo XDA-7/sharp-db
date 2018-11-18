@@ -30,15 +30,8 @@ namespace SharpDb
 
         public uint GetNodeIndexForKey(int key)
         {
-            foreach (var upperValue in upperKeyValues)
-            {
-                if (upperValue > key)
-                {
-                    return nodeIndices[upperValue];
-                }
-            }
-
-            return 0;
+            var upperRange = upperKeyValues.GetViewBetween(key, upperKeyValues.Max);
+            return nodeIndices[upperRange.Min];
         }
 
         public bool IsFull() => nodeIndices.Count == maxKeys;

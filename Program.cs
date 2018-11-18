@@ -26,7 +26,7 @@ namespace SharpDb
                     {
                         Console.WriteLine(i);
                     }
-                    
+
                     try
                     {
                         var key = rng.Next(1, int.MaxValue);
@@ -36,7 +36,7 @@ namespace SharpDb
                         }
 
                         var byteValue = (byte)(key % 256);
-                        if (i == 234112)
+                        if (i == 3132843)
                         {
                             chosenKey = key;
                         }
