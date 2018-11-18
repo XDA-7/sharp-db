@@ -10,7 +10,7 @@ namespace SharpDb
 
         private readonly int dataRowHeaderSize = 8; // 4 for the key, 4 for the data length
 
-        private int BytesUsed;
+        private int bytesUsed = 1; // First byte is reserved for the node type
 
         public LeafNode()
         {
@@ -26,12 +26,12 @@ namespace SharpDb
 
         public void AddDataRow(int key, byte[] data)
         {
-            BytesUsed += dataRowHeaderSize + data.Length;
+            bytesUsed += dataRowHeaderSize + data.Length;
             dataRows.Add(key, data);
             dataKeys.Add(key);
         }
 
-        public bool CanFitDataRow(byte[] data) => (BytesUsed + data.Length + dataRowHeaderSize) < Constants.PageSize;
+        public bool CanFitDataRow(byte[] data) => (bytesUsed + data.Length + dataRowHeaderSize) < Constants.PageSize;
 
         // Split off and return the lower half in a new node
         // We split off the lower half so that data about the upper key value of this node does not change
@@ -55,7 +55,7 @@ namespace SharpDb
 
         protected override void DeserializeData(byte[] data, int index)
         {
-            BytesUsed = data.Length;
+            bytesUsed = data.Length;
             var key = DeserializeInt(data, ref index);
             while(key != 0)
             {

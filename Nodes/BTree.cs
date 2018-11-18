@@ -40,6 +40,7 @@ namespace SharpDb
             {
                 var largestKey = leafNode.GetLargestKey();
                 leafNode.AddDataRow(key, data);
+                // pager.SaveNode(leafNode);
             }
             else // Split the leaf node in two and find a place for the lower-ordered one
             {
@@ -47,30 +48,35 @@ namespace SharpDb
                 leafNode.AddDataRow(key, data);
 
                 var splitLeaf = leafNode.Split();
+                // pager.SaveNode(leafNode);
                 splitLeaf.PageIndex = pager.NewNodeIndex();
                 nodeCache.Add(splitLeaf.PageIndex, splitLeaf);
+                // pager.SaveNode(splitLeaf);
 
                 var currentInternalNode = nodeStack.Pop(); // Take the parent to the leaf nodes
                 if (!currentInternalNode.IsFull())
                 {
                     currentInternalNode.AddNode(splitLeaf.PageIndex, splitLeaf.GetLargestKey());
+                    // pager.SaveNode(currentInternalNode);
                 }
                 else // Keep splitting internal nodes and adding them to the parent until reaching one that can fit a new node without splitting
                 {
                     currentInternalNode.AddNode(splitLeaf.PageIndex, splitLeaf.GetLargestKey());
-
                     var splitInternalNode = currentInternalNode.Split();
+                    // pager.SaveNode(currentInternalNode);
                     splitInternalNode.PageIndex = pager.NewNodeIndex();
                     nodeCache.Add(splitInternalNode.PageIndex, splitInternalNode);
+                    // pager.SaveNode(splitInternalNode);
 
                     currentInternalNode = GetParentNode(nodeStack, currentInternalNode);
                     while (currentInternalNode.IsFull())
                     {
                         currentInternalNode.AddNode(splitInternalNode.PageIndex, splitInternalNode.GetLargestKey());
-
                         splitInternalNode = currentInternalNode.Split();
+                        // pager.SaveNode(currentInternalNode);
                         splitInternalNode.PageIndex = pager.NewNodeIndex();
                         nodeCache.Add(splitInternalNode.PageIndex, splitInternalNode);
+                        // pager.SaveNode(splitInternalNode);
 
                         currentInternalNode = GetParentNode(nodeStack, currentInternalNode);
                     }
@@ -103,14 +109,17 @@ namespace SharpDb
             if (leafRoot.CanFitDataRow(data))
             {
                 leafRoot.AddDataRow(key, data);
+                // pager.SaveNode(leafRoot);
             }
             else
             {
                 leafRoot.AddDataRow(key, data);
 
                 var splitNode = leafRoot.Split();
+                // pager.SaveNode(leafRoot);
                 splitNode.PageIndex = pager.NewNodeIndex();
                 nodeCache.Add(splitNode.PageIndex, splitNode);
+                // pager.SaveNode(splitNode);
 
                 root = new InternalNode();
                 root.PageIndex = pager.NewNodeIndex();
@@ -118,6 +127,7 @@ namespace SharpDb
 
                 ((InternalNode)root).AddNode(leafRoot.PageIndex, int.MaxValue); // We need any key larger than anything we currently have to fit in the right node
                 ((InternalNode)root).AddNode(splitNode.PageIndex, splitNode.GetLargestKey());
+                // pager.SaveNode(root);
             }
         }
 
@@ -131,6 +141,14 @@ namespace SharpDb
             }
 
             return ((LeafNode)currentNode).GetDataRow(key);
+        }
+
+        public void SaveNodes()
+        {
+            foreach (var node in nodeCache.Values)
+            {
+                pager.SaveNode(node);
+            }
         }
 
         private Node GetNode(uint pageIndex) =>

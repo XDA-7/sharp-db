@@ -10,17 +10,44 @@ namespace SharpDb
     {
         public static void Main()
         {
-            using (var dbFile = MemoryMappedFile.CreateNew("Db", Constants.DbMaxSize))
+            using (var dbFile = MemoryMappedFile.CreateFromFile("Db", FileMode.OpenOrCreate, "Db", Constants.DbMaxSize))
+            {
+                Pager.Init(dbFile);
+                var reader = new BinaryReader(dbFile.CreateViewStream(0, Constants.PageSize));
+                var data = reader.ReadBytes(Constants.PageSize);
+                var root = new InternalNode(0, data);
+                var bTree = new BTree(root);
+                data = bTree.GetData(876726186);
+                Console.WriteLine(data[3]);
+            }
+        }
+
+        public static void Test05()
+        {
+            using (var dbFile = MemoryMappedFile.CreateFromFile("Db", FileMode.OpenOrCreate, "Db", Constants.DbMaxSize))
+            {
+                Pager.Init(dbFile);
+                var reader = new BinaryReader(dbFile.CreateViewStream(0, Constants.PageSize));
+                var data = reader.ReadBytes(Constants.PageSize);
+                var root = new InternalNode(0, data);
+                var bTree = new BTree(root);
+            }
+        }
+
+        public static void Test04()
+        {
+            using (var dbFile = MemoryMappedFile.CreateFromFile("Db", FileMode.OpenOrCreate, "Db", Constants.DbMaxSize))
             {
                 Pager.Init(dbFile);
                 var pager = Pager.Get();
                 var rng = new Random();
                 var root = new LeafNode();
                 root.PageIndex = pager.NewNodeIndex();
+                pager.SaveNode(root);
                 var bTree = new BTree(root);
                 var usedKeys = new HashSet<int>();
                 var chosenKey = 0;
-                for (var i = 0; i < 5000000; i++)
+                for (var i = 0; i < 2000000; i++)
                 {
                     if (i % 100000 == 0)
                     {
@@ -36,7 +63,7 @@ namespace SharpDb
                         }
 
                         var byteValue = (byte)(key % 256);
-                        if (i == 3132843)
+                        if (i == 313284)
                         {
                             chosenKey = key;
                         }
@@ -50,55 +77,9 @@ namespace SharpDb
                         Console.WriteLine(e.StackTrace);
                         break;
                     }
-
                 }
 
-                var data = bTree.GetData(chosenKey);
-                Console.WriteLine(chosenKey);
-                Console.WriteLine(chosenKey % 256);
-                Console.WriteLine(string.Join(",", data));
-            }
-        }
-
-        public static void Test04()
-        {
-            using (var dbFile = MemoryMappedFile.CreateNew("Db", Constants.DbMaxSize))
-            {
-                Pager.Init(dbFile);
-                var pager = Pager.Get();
-                var rng = new Random();
-                var root = new LeafNode();
-                root.PageIndex = pager.NewNodeIndex();
-                var bTree = new BTree(root);
-                var usedKeys = new HashSet<int>();
-                var chosenKey = 0;
-                for (var i = 0; i < 500000; i++)
-                {
-                    try
-                    {
-                        var key = rng.Next(1, int.MaxValue);
-                        while (usedKeys.Contains(key))
-                        {
-                            key = rng.Next(1, int.MaxValue);
-                        }
-
-                        var byteValue = (byte)(key % 256);
-                        if (i == 234112)
-                        {
-                            chosenKey = key;
-                        }
-                        bTree.InsertData(key, new byte[] { 0, 0, 0,  byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue });
-                        usedKeys.Add(key);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("Iteration: " + i);
-                        Console.WriteLine(e.Message);
-                        Console.WriteLine(e.StackTrace);
-                        break;
-                    }
-
-                }
+                bTree.SaveNodes();
 
                 var data = bTree.GetData(chosenKey);
                 Console.WriteLine(chosenKey);

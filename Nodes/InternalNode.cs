@@ -100,6 +100,7 @@ namespace SharpDb
                 resultIndex += 4;
             }
 
+            upperKeyValues.Add(maxKey);
             copyArray = SerializeInt((int)nodeIndices[maxKey]);
             copyArray.CopyTo(result, resultIndex);
             
