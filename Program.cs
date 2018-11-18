@@ -10,6 +10,101 @@ namespace SharpDb
     {
         public static void Main()
         {
+            using (var dbFile = MemoryMappedFile.CreateNew("Db", Constants.DbMaxSize))
+            {
+                Pager.Init(dbFile);
+                var pager = Pager.Get();
+                var rng = new Random();
+                var root = new LeafNode();
+                root.PageIndex = pager.NewNodeIndex();
+                var bTree = new BTree(root);
+                var usedKeys = new HashSet<int>();
+                var chosenKey = 0;
+                for (var i = 0; i < 5000000; i++)
+                {
+                    if (i % 100000 == 0)
+                    {
+                        Console.WriteLine(i);
+                    }
+                    
+                    try
+                    {
+                        var key = rng.Next(1, int.MaxValue);
+                        while (usedKeys.Contains(key))
+                        {
+                            key = rng.Next(1, int.MaxValue);
+                        }
+
+                        var byteValue = (byte)(key % 256);
+                        if (i == 234112)
+                        {
+                            chosenKey = key;
+                        }
+                        bTree.InsertData(key, new byte[] { 0, 0, 0,  byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue });
+                        usedKeys.Add(key);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Iteration: " + i);
+                        Console.WriteLine(e.Message);
+                        Console.WriteLine(e.StackTrace);
+                        break;
+                    }
+
+                }
+
+                var data = bTree.GetData(chosenKey);
+                Console.WriteLine(chosenKey);
+                Console.WriteLine(chosenKey % 256);
+                Console.WriteLine(string.Join(",", data));
+            }
+        }
+
+        public static void Test04()
+        {
+            using (var dbFile = MemoryMappedFile.CreateNew("Db", Constants.DbMaxSize))
+            {
+                Pager.Init(dbFile);
+                var pager = Pager.Get();
+                var rng = new Random();
+                var root = new LeafNode();
+                root.PageIndex = pager.NewNodeIndex();
+                var bTree = new BTree(root);
+                var usedKeys = new HashSet<int>();
+                var chosenKey = 0;
+                for (var i = 0; i < 500000; i++)
+                {
+                    try
+                    {
+                        var key = rng.Next(1, int.MaxValue);
+                        while (usedKeys.Contains(key))
+                        {
+                            key = rng.Next(1, int.MaxValue);
+                        }
+
+                        var byteValue = (byte)(key % 256);
+                        if (i == 234112)
+                        {
+                            chosenKey = key;
+                        }
+                        bTree.InsertData(key, new byte[] { 0, 0, 0,  byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue, 0, 0, 0, byteValue });
+                        usedKeys.Add(key);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Iteration: " + i);
+                        Console.WriteLine(e.Message);
+                        Console.WriteLine(e.StackTrace);
+                        break;
+                    }
+
+                }
+
+                var data = bTree.GetData(chosenKey);
+                Console.WriteLine(chosenKey);
+                Console.WriteLine(chosenKey % 256);
+                Console.WriteLine(string.Join(",", data));
+            }
         }
 
         public static void Test03()
@@ -61,19 +156,19 @@ namespace SharpDb
             {
                 Pager.Init(dbFile);
                 var pager = Pager.Get();
-                var stubNodes = new LeafNode[]
+                var indices = new uint[]
                 {
-                    pager.NewNode<LeafNode>(),
-                    pager.NewNode<LeafNode>(),
-                    pager.NewNode<LeafNode>(),
-                    pager.NewNode<LeafNode>(),
-                    pager.NewNode<LeafNode>(),
-                    pager.NewNode<LeafNode>(),
-                    pager.NewNode<LeafNode>(),
-                    pager.NewNode<LeafNode>(),
-                    pager.NewNode<LeafNode>()
+                    pager.NewNodeIndex(),
+                    pager.NewNodeIndex(),
+                    pager.NewNodeIndex(),
+                    pager.NewNodeIndex(),
+                    pager.NewNodeIndex(),
+                    pager.NewNodeIndex(),
+                    pager.NewNodeIndex(),
+                    pager.NewNodeIndex(),
+                    pager.NewNodeIndex()
                 };
-                var node = new LeafNode(stubNodes[2].PageIndex, data);
+                var node = new LeafNode(indices[2], data);
                 pager.SaveNode(node);
                 var emptyNode = pager.LoadNode(1);
                 var populatedNode = pager.LoadNode(2);

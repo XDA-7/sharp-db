@@ -51,6 +51,8 @@ namespace SharpDb
             return splitNode;
         }
 
+        public int GetLargestKey() => dataKeys.Max;
+
         protected override void DeserializeData(byte[] data, int index)
         {
             BytesUsed = data.Length;

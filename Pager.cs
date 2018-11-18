@@ -22,10 +22,9 @@ namespace SharpDb
             this.dbFile = dbFile;
         }
 
-        public T NewNode<T>() where T : Node, new()
+        public uint NewNodeIndex()
         {
-            var result = new T();
-            result.PageIndex = pagesUsed;
+            var result = pagesUsed;
             pagesUsed++;
             return result;
         }
