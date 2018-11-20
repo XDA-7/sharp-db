@@ -10,7 +10,7 @@ namespace SharpDb
     {
         private MemoryMappedFile dbFile;
 
-        private uint pagesUsed;
+        private int pagesUsed;
 
         private static Pager pager;
 
@@ -23,7 +23,7 @@ namespace SharpDb
             this.dbFile = dbFile;
         }
 
-        public uint NewNodeIndex()
+        public PageIndex NewNodeIndex()
         {
             var result = pagesUsed;
             pagesUsed++;
@@ -32,16 +32,16 @@ namespace SharpDb
 
         public void SaveNode(Node node)
         {
-            using (var stream = dbFile.CreateViewStream(node.PageIndex * Constants.PageSize, Constants.PageSize))
+            using (var stream = dbFile.CreateViewStream((int)node.PageIndex * Constants.PageSize, Constants.PageSize))
             {
                 var writer = new BinaryWriter(stream);
                 writer.Write(node.Serialize());
             }
         }
 
-        public Node LoadNode(uint pageIndex)
+        public Node LoadNode(PageIndex pageIndex)
         {
-            using (var stream = dbFile.CreateViewStream(pageIndex * Constants.PageSize, Constants.PageSize))
+            using (var stream = dbFile.CreateViewStream((int)pageIndex * Constants.PageSize, Constants.PageSize))
             {
                 var reader = new BinaryReader(stream);
                 var data = reader.ReadBytes(Constants.PageSize);

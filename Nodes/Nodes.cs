@@ -4,7 +4,7 @@ namespace SharpDb
 {
     public abstract class Node
     {
-        public uint PageIndex { get; set; }
+        public PageIndex PageIndex { get; set; }
 
         public abstract byte[] Serialize();
 
@@ -52,28 +52,11 @@ namespace SharpDb
 
         protected int DeserializeInt(byte[] data, ref int index)
         {
-            var intBytes = new int[]
-            {
-                data[index] << 12,
-                data[index + 1] << 8,
-                data[index + 2] << 4,
-                data[index + 3]
-            };
-
+            var result = BitConverter.ToInt32(data, index);
             index += 4;
-
-            return intBytes[0] | intBytes[1] | intBytes[2] | intBytes[3];
+            return result;
         }
 
-        protected byte[] SerializeInt(int value)
-        {
-            return new byte[]
-            {
-                (byte)((value >> 12)),
-                (byte)((value >> 8) & 0xff),
-                (byte)((value >> 4) & 0xff),
-                (byte)(value & 0xff)
-            };
-        }
+        protected byte[] SerializeInt(int value) => BitConverter.GetBytes(value);
     }
 }

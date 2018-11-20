@@ -4,9 +4,9 @@ namespace SharpDb
 {
     public class LeafNode : Node
     {
-        private Dictionary<int, byte[]> dataRows = new Dictionary<int, byte[]>();
+        private Dictionary<NodeKey, byte[]> dataRows = new Dictionary<NodeKey, byte[]>();
 
-        private SortedSet<int> dataKeys = new SortedSet<int>();
+        private SortedSet<NodeKey> dataKeys = new SortedSet<NodeKey>();
 
         private readonly int dataRowHeaderSize = 8; // 4 for the key, 4 for the data length
 
@@ -16,15 +16,15 @@ namespace SharpDb
         {
         }
 
-        public LeafNode(uint pageIndex, byte[] data)
+        public LeafNode(PageIndex pageIndex, byte[] data)
         {
             PageIndex = pageIndex;
             Deserialize(data);
         }
 
-        public byte[] GetDataRow(int key) => dataRows.ContainsKey(key) ? dataRows[key] : new byte[0];
+        public byte[] GetDataRow(NodeKey key) => dataRows.ContainsKey(key) ? dataRows[key] : new byte[0];
 
-        public void AddDataRow(int key, byte[] data)
+        public void AddDataRow(NodeKey key, byte[] data)
         {
             bytesUsed += dataRowHeaderSize + data.Length;
             dataRows.Add(key, data);
@@ -38,7 +38,7 @@ namespace SharpDb
         public LeafNode Split()
         {
             var keyCount = dataKeys.Count / 2;
-            var upperKeys = new int[keyCount];
+            var upperKeys = new NodeKey[keyCount];
             dataKeys.CopyTo(upperKeys, 0, keyCount);
             var splitNode = new LeafNode();
             foreach (var upperKey in upperKeys)
@@ -51,7 +51,7 @@ namespace SharpDb
             return splitNode;
         }
 
-        public int GetLargestKey() => dataKeys.Max;
+        public NodeKey GetLargestKey() => dataKeys.Max;
 
         protected override void DeserializeData(byte[] data, int index)
         {
@@ -79,7 +79,7 @@ namespace SharpDb
             var index = 1;
             foreach (var rowKey in dataKeys)
             {
-                var key = SerializeInt(rowKey);
+                var key = SerializeInt((int)rowKey);
                 var blob = SerializeBlob(dataRows[rowKey]);
 
                 key.CopyTo(result, index);

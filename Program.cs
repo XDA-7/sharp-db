@@ -17,9 +17,45 @@ namespace SharpDb
                 var data = reader.ReadBytes(Constants.PageSize);
                 var root = new InternalNode(0, data);
                 var bTree = new BTree(root);
-                data = bTree.GetData(876726186);
+                data = bTree.GetData(97991873);
                 Console.WriteLine(data[3]);
             }
+        }
+
+        public static void Test06()
+        {
+            using (var dbFile = MemoryMappedFile.CreateFromFile("Db", FileMode.OpenOrCreate, "Db", Constants.DbMaxSize))
+            {
+                Pager.Init(dbFile);
+                var reader = new BinaryReader(dbFile.CreateViewStream(0 * Constants.PageSize, Constants.PageSize));
+                var data = reader.ReadBytes(Constants.PageSize);
+                Console.WriteLine(data[0]);
+                var index = 1;
+                while (index + 4 < data.Length)
+                {
+                    var result = DeserializeInt(data, ref index);
+                    if (result != 0)
+                    {
+                        Console.Write(result + ",");
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        private static byte[] SerializeInt(int value)
+        {
+            return BitConverter.GetBytes(value);
+        }
+
+        private static int DeserializeInt(byte[] data, ref int index)
+        {
+            var result = BitConverter.ToInt32(data, index);
+            index += 4;
+            return result;
         }
 
         public static void Test05()
@@ -31,6 +67,8 @@ namespace SharpDb
                 var data = reader.ReadBytes(Constants.PageSize);
                 var root = new InternalNode(0, data);
                 var bTree = new BTree(root);
+                data = bTree.GetData(876726186);
+                Console.WriteLine(data[3]);
             }
         }
 
@@ -137,7 +175,7 @@ namespace SharpDb
             {
                 Pager.Init(dbFile);
                 var pager = Pager.Get();
-                var indices = new uint[]
+                var indices = new PageIndex[]
                 {
                     pager.NewNodeIndex(),
                     pager.NewNodeIndex(),

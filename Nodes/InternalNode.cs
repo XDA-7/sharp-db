@@ -6,21 +6,21 @@ namespace SharpDb
     {
         private static readonly int maxKeys = Constants.PageSize / 8;
 
-        private Dictionary<int, uint> nodeIndices = new Dictionary<int, uint>();
+        private Dictionary<NodeKey, PageIndex> nodeIndices = new Dictionary<NodeKey, PageIndex>();
 
-        private SortedSet<int> upperKeyValues = new SortedSet<int>();
+        private SortedSet<NodeKey> upperKeyValues = new SortedSet<NodeKey>();
 
         public InternalNode()
         {
         }
 
-        public InternalNode(uint pageIndex, byte[] data)
+        public InternalNode(PageIndex pageIndex, byte[] data)
         {
             PageIndex = pageIndex;
             Deserialize(data);
         }
 
-        public InternalNode(uint[] nodeIndices, int[] upperKeyValues)
+        public InternalNode(PageIndex[] nodeIndices, NodeKey[] upperKeyValues)
         {
             for (var i = 0; i < nodeIndices.Length; i++)
             {
@@ -28,7 +28,7 @@ namespace SharpDb
             }
         }
 
-        public uint GetNodeIndexForKey(int key)
+        public PageIndex GetNodeIndexForKey(NodeKey key)
         {
             var upperRange = upperKeyValues.GetViewBetween(key, upperKeyValues.Max);
             return nodeIndices[upperRange.Min];
@@ -36,7 +36,7 @@ namespace SharpDb
 
         public bool IsFull() => nodeIndices.Count == maxKeys;
 
-        public void AddNode(uint pageIndex, int upperKey)
+        public void AddNode(PageIndex pageIndex, NodeKey upperKey)
         {
             upperKeyValues.Add(upperKey);
             nodeIndices.Add(upperKey, pageIndex);
@@ -47,7 +47,7 @@ namespace SharpDb
         public InternalNode Split()
         {
             var nodeCount = upperKeyValues.Count / 2;
-            var splitKeys = new int[nodeCount];
+            var splitKeys = new NodeKey[nodeCount];
             upperKeyValues.CopyTo(splitKeys, 0, nodeCount);
             var splitNode = new InternalNode();
             foreach (var upperKey in splitKeys)
@@ -60,14 +60,14 @@ namespace SharpDb
             return splitNode;
         }
 
-        public int GetLargestKey() => upperKeyValues.Max;
+        public NodeKey GetLargestKey() => upperKeyValues.Max;
 
         protected override void DeserializeData(byte[] data, int index)
         {
             for (var i = 0; i < maxKeys; i++)
             {
-                var pageIndex = (uint)DeserializeInt(data, ref index);
-                var upperKey = DeserializeInt(data, ref index);
+                SharpDb.PageIndex pageIndex = DeserializeInt(data, ref index);
+                NodeKey upperKey = DeserializeInt(data, ref index);
                 if (upperKey != 0)
                 {
                     nodeIndices.Add(upperKey, pageIndex);
@@ -95,7 +95,7 @@ namespace SharpDb
                 copyArray = SerializeInt((int)nodeIndices[keyValue]);
                 copyArray.CopyTo(result, resultIndex);
                 resultIndex += 4;
-                copyArray = SerializeInt(keyValue);
+                copyArray = SerializeInt((int)keyValue);
                 copyArray.CopyTo(result, resultIndex);
                 resultIndex += 4;
             }
