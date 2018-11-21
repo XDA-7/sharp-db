@@ -10,15 +10,20 @@ namespace SharpDb
     {
         public static void Main()
         {
-            using (var dbFile = MemoryMappedFile.CreateFromFile("Db", FileMode.OpenOrCreate, "Db", Constants.DbMaxSize))
+        }
+
+        public static void Test07()
+        {
+            var randomiser = new KeyRandomiser();
+            for (var i = -1000000; i < 1000000; i++)
             {
-                Pager.Init(dbFile);
-                var reader = new BinaryReader(dbFile.CreateViewStream(0, Constants.PageSize));
-                var data = reader.ReadBytes(Constants.PageSize);
-                var root = new InternalNode(0, data);
-                var bTree = new BTree(root);
-                data = bTree.GetData(97991873);
-                Console.WriteLine(data[3]);
+                var nodeKey = randomiser.GetKeyFromId(i);
+                var hopefullyI = randomiser.GetIdFromNodeKey(nodeKey);
+                if (i != hopefullyI)
+                {
+                    Console.WriteLine(i + " became " + hopefullyI);
+                    break;
+                }
             }
         }
 
