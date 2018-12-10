@@ -4,14 +4,18 @@ namespace SharpDb
     {
         public PageIndex PageIndex { get; set; }
 
+        public Node()
+        {
+        }
+
+        public Node(PageIndex pageIndex, byte[] data)
+        {
+            PageIndex = pageIndex;
+            Deserialize(data);
+        }
+
         public abstract byte[] Serialize();
 
-        protected abstract void DeserializeData(byte[] data, int index);
-
-        protected void Deserialize(byte[] data)
-        {
-            var index = 1; // First byte indicates the node's type
-            DeserializeData(data, index);
-        }
+        protected abstract void Deserialize(byte[] data);
     }
 }

@@ -2,9 +2,9 @@ namespace SharpDb
 {
     public enum ColumnType
     {
-        Integer,
-        Float,
-        Bit,
-        Char
+        Integer = 0,
+        Float = 1,
+        Bit = 2,
+        Char = 3
     }
 }

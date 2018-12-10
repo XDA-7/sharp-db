@@ -10,14 +10,12 @@ namespace SharpDb
 
         private SortedSet<NodeKey> upperKeyValues = new SortedSet<NodeKey>();
 
-        public InternalNode()
+        public InternalNode() : base()
         {
         }
 
-        public InternalNode(PageIndex pageIndex, byte[] data)
+        public InternalNode(PageIndex pageIndex, byte[] data) : base(pageIndex, data)
         {
-            PageIndex = pageIndex;
-            Deserialize(data);
         }
 
         public InternalNode(PageIndex[] nodeIndices, NodeKey[] upperKeyValues)
@@ -62,8 +60,9 @@ namespace SharpDb
 
         public NodeKey GetLargestKey() => upperKeyValues.Max;
 
-        protected override void DeserializeData(byte[] data, int index)
+        protected override void Deserialize(byte[] data)
         {
+            var index = 1; // First byte indicates the node's type
             for (var i = 0; i < maxKeys; i++)
             {
                 SharpDb.PageIndex pageIndex = Serializer.DeserializeInt(data, ref index);

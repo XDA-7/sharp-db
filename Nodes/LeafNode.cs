@@ -4,7 +4,7 @@ namespace SharpDb
 {
     public class LeafNode : Node
     {
-        private Dictionary<NodeKey, byte[]> dataRows = new Dictionary<NodeKey, byte[]>();
+        private Dictionary<NodeKey, Blob> dataRows = new Dictionary<NodeKey, Blob>();
 
         private SortedSet<NodeKey> dataKeys = new SortedSet<NodeKey>();
 
@@ -12,19 +12,19 @@ namespace SharpDb
 
         private int bytesUsed = 1; // First byte is reserved for the node type
 
-        public LeafNode()
+        public LeafNode() : base()
         {
         }
 
-        public LeafNode(PageIndex pageIndex, byte[] data)
+        public LeafNode(PageIndex pageIndex, byte[] data) : base(pageIndex, data)
         {
-            PageIndex = pageIndex;
-            Deserialize(data);
         }
 
-        public byte[] GetDataRow(NodeKey key) => dataRows.ContainsKey(key) ? dataRows[key] : new byte[0];
+        public byte[] GetDataRow(NodeKey key) => dataRows.ContainsKey(key) ? dataRows[key].ProduceByteArray() : new byte[0];
 
-        public void AddDataRow(NodeKey key, byte[] data)
+        public void AddDataRow(NodeKey key, byte[] data) => AddDataRow(key, new Blob(data));
+
+        public void AddDataRow(NodeKey key, Blob data)
         {
             bytesUsed += dataRowHeaderSize + data.Length;
             dataRows.Add(key, data);
@@ -53,13 +53,14 @@ namespace SharpDb
 
         public NodeKey GetLargestKey() => dataKeys.Max;
 
-        protected override void DeserializeData(byte[] data, int index)
+        protected override void Deserialize(byte[] data)
         {
+            var index = 1; // First byte indicates the node's type
             bytesUsed = data.Length;
             var key = Serializer.DeserializeInt(data, ref index);
             while(key != 0)
             {
-                dataRows.Add(key, Serializer.DeserializeBlob(data, ref index));
+                dataRows.Add(key, new Blob(data, ref index));
                 dataKeys.Add(key);
                 if (index + 4 < data.Length)
                 {
@@ -80,7 +81,7 @@ namespace SharpDb
             foreach (var rowKey in dataKeys)
             {
                 var key = Serializer.SerializeInt((int)rowKey);
-                var blob = Serializer.SerializeBlob(dataRows[rowKey]);
+                var blob = dataRows[rowKey].Serialize();
 
                 key.CopyTo(result, index);
                 index += 4;

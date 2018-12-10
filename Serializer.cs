@@ -5,28 +5,6 @@ namespace SharpDb
 {
     public static class Serializer
     {
-        public static byte[] DeserializeBlob(byte[] data, ref int index)
-        {
-            var blobSize = DeserializeInt(data, ref index);
-            var blob = new byte[blobSize];
-            for (var i = 0; i < blobSize; i++)
-            {
-                blob[i] = data[index + i];
-            }
-
-            index += blobSize;
-            return blob;
-        }
-
-        public static byte[] SerializeBlob(byte[] value)
-        {
-            var result = new byte[value.Length + 4];
-            var size = SerializeInt(value.Length);
-            for (var i = 0; i < 4; i++) result[i] = size[i];
-            for (var i = 0; i < value.Length; i++) result[i + 4] = value[i];
-            return result;
-        }
-
         public static bool DeserilizeBool(byte[] data, ref int index)
         {
             var boolData = data[index];
