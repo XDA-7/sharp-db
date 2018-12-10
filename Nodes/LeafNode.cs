@@ -56,14 +56,14 @@ namespace SharpDb
         protected override void DeserializeData(byte[] data, int index)
         {
             bytesUsed = data.Length;
-            var key = DeserializeInt(data, ref index);
+            var key = Serializer.DeserializeInt(data, ref index);
             while(key != 0)
             {
-                dataRows.Add(key, DeserializeBlob(data, ref index));
+                dataRows.Add(key, Serializer.DeserializeBlob(data, ref index));
                 dataKeys.Add(key);
                 if (index + 4 < data.Length)
                 {
-                    key = DeserializeInt(data, ref index);
+                    key = Serializer.DeserializeInt(data, ref index);
                 }
                 else
                 {
@@ -79,8 +79,8 @@ namespace SharpDb
             var index = 1;
             foreach (var rowKey in dataKeys)
             {
-                var key = SerializeInt((int)rowKey);
-                var blob = SerializeBlob(dataRows[rowKey]);
+                var key = Serializer.SerializeInt((int)rowKey);
+                var blob = Serializer.SerializeBlob(dataRows[rowKey]);
 
                 key.CopyTo(result, index);
                 index += 4;

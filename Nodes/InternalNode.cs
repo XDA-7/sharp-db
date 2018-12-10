@@ -66,8 +66,8 @@ namespace SharpDb
         {
             for (var i = 0; i < maxKeys; i++)
             {
-                SharpDb.PageIndex pageIndex = DeserializeInt(data, ref index);
-                NodeKey upperKey = DeserializeInt(data, ref index);
+                SharpDb.PageIndex pageIndex = Serializer.DeserializeInt(data, ref index);
+                NodeKey upperKey = Serializer.DeserializeInt(data, ref index);
                 if (upperKey != 0)
                 {
                     nodeIndices.Add(upperKey, pageIndex);
@@ -92,16 +92,16 @@ namespace SharpDb
             upperKeyValues.Remove(maxKey);
             foreach (var keyValue in upperKeyValues)
             {
-                copyArray = SerializeInt((int)nodeIndices[keyValue]);
+                copyArray = Serializer.SerializeInt((int)nodeIndices[keyValue]);
                 copyArray.CopyTo(result, resultIndex);
                 resultIndex += 4;
-                copyArray = SerializeInt((int)keyValue);
+                copyArray = Serializer.SerializeInt((int)keyValue);
                 copyArray.CopyTo(result, resultIndex);
                 resultIndex += 4;
             }
 
             upperKeyValues.Add(maxKey);
-            copyArray = SerializeInt((int)nodeIndices[maxKey]);
+            copyArray = Serializer.SerializeInt((int)nodeIndices[maxKey]);
             copyArray.CopyTo(result, resultIndex);
             
             return result;

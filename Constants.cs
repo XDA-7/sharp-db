@@ -4,6 +4,6 @@ namespace SharpDb
     {
         public const int DbMaxSize = int.MaxValue;
 
-        public const int PageSize = 2048; //65536;
+        public const int PageSize = 2048;
     }
 }

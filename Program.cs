@@ -12,6 +12,43 @@ namespace SharpDb
         {
         }
 
+        public static void Test08()
+        {
+            var columnDefs = new ColumnDefinition[]
+            {
+                new ColumnDefinition("GivenName", ColumnType.Char, 30),
+                new ColumnDefinition("FamilyName", ColumnType.Char, 30),
+                new ColumnDefinition("Age", ColumnType.Integer, 1),
+                new ColumnDefinition("HeightInMeters", ColumnType.Float, 1),
+                new ColumnDefinition("IsAlive", ColumnType.Bit, 1)
+            };
+            var tableDef = new TableDefinition("Person", columnDefs);
+
+            var converter = new RowConverter(tableDef);
+
+            var rows = new object[][]
+            {
+                new object[] { "Velvet", "Crowe", 19, 1.45f, false },
+                new object[] { "Rokurou", "Rangetsu", 34, 1.67f, true }
+            };
+
+            var velvetBytes = converter.WriteRow(rows[0]);
+            var rokurouBytes = converter.WriteRow(rows[1]);
+
+            var velvetObjects = converter.ReadRow(velvetBytes);
+            var rokurouObjects = converter.ReadRow(rokurouBytes);
+
+            foreach (var obj in velvetObjects)
+            {
+                Console.WriteLine(obj);
+            }
+
+            foreach (var obj in rokurouObjects)
+            {
+                Console.WriteLine(obj);
+            }
+        }
+
         public static void Test07()
         {
             var randomiser = new KeyRandomiser();
