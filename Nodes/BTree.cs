@@ -130,7 +130,7 @@ namespace SharpDb
             }
         }
 
-        public byte[] GetData(NodeKey key)
+        public Blob GetData(NodeKey key)
         {
             var currentNode = root;
             while (currentNode is InternalNode)

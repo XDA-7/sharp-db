@@ -20,7 +20,7 @@ namespace SharpDb
         {
         }
 
-        public byte[] GetDataRow(NodeKey key) => dataRows.ContainsKey(key) ? dataRows[key].ProduceByteArray() : new byte[0];
+        public Blob GetDataRow(NodeKey key) => dataRows.ContainsKey(key) ? dataRows[key] : new Blob(new byte[0]);
 
         public void AddDataRow(NodeKey key, byte[] data) => AddDataRow(key, new Blob(data));
 

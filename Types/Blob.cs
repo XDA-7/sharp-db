@@ -19,6 +19,8 @@ namespace SharpDb
             Deserialize(data, ref index);
         }
 
+        public object this[int index] { get => data[index]; }
+
         private void Deserialize(byte[] data, ref int index)
         {
             var blobSize = Serializer.DeserializeInt(data, ref index);
@@ -44,6 +46,14 @@ namespace SharpDb
         {
             var result = new byte[data.Length];
             data.CopyTo(result, 0);
+            return result;
+        }
+
+        public byte[] ProduceByteArray(int start, int length)
+        {
+            length = Math.Min(data.Length, length); 
+            var result = new byte[length];
+            Array.Copy(data, start, result, 0, length);
             return result;
         }
     }

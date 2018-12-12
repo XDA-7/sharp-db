@@ -109,7 +109,7 @@ namespace SharpDb
                 var data = reader.ReadBytes(Constants.PageSize);
                 var root = new InternalNode(0, data);
                 var bTree = new BTree(root);
-                data = bTree.GetData(876726186);
+                data = bTree.GetData(876726186).ProduceByteArray();
                 Console.WriteLine(data[3]);
             }
         }
