@@ -31,7 +31,7 @@ namespace SharpDb
             {
                 var currentInternalNode = (InternalNode)currentNode;
                 nodeStack.Push(currentInternalNode);
-                var childNodeIndex = currentInternalNode.GetNodeIndexForKey(key);
+                var childNodeIndex = currentInternalNode.GetPageIndexForKey(key);
                 currentNode = GetNode(childNodeIndex);
             }
 
@@ -132,14 +132,26 @@ namespace SharpDb
 
         public Blob GetData(NodeKey key)
         {
+            var leafNode = GetLeafNode(key);
+            return leafNode.GetDataRow(key);
+        }
+
+        public void ReplaceData(NodeKey key, byte[] data)
+        {
+            var leafNode = GetLeafNode(key);
+            leafNode.ReplaceDataRow(key, data);
+        }
+
+        private LeafNode GetLeafNode(NodeKey nodeKey)
+        {
             var currentNode = root;
             while (currentNode is InternalNode)
             {
-                var childIndex = ((InternalNode)currentNode).GetNodeIndexForKey(key);
+                var childIndex = ((InternalNode)currentNode).GetPageIndexForKey(nodeKey);
                 currentNode = GetNode(childIndex);
             }
 
-            return ((LeafNode)currentNode).GetDataRow(key);
+            return (LeafNode)currentNode;
         }
 
         public void SaveNodes()
@@ -150,7 +162,18 @@ namespace SharpDb
             }
         }
 
-        private Node GetNode(PageIndex pageIndex) =>
-            nodeCache.ContainsKey(pageIndex) ? nodeCache[pageIndex] : pager.LoadNode(pageIndex);
+        private Node GetNode(PageIndex pageIndex)
+        {
+            if (nodeCache.ContainsKey(pageIndex))
+            {
+                return nodeCache[pageIndex];
+            }
+            else
+            {
+                var node = pager.LoadNode(pageIndex);
+                nodeCache.Add(pageIndex, node);
+                return node;
+            }
+        }
     }
 }

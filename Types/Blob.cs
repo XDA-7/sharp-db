@@ -6,7 +6,7 @@ namespace SharpDb
     {
         private byte[] data;
 
-        public int Length { get => data.Length; }
+        public int ByteCount { get => data.Length; }
 
         public Blob(byte[] data)
         {
@@ -46,6 +46,14 @@ namespace SharpDb
         {
             var result = new byte[data.Length];
             data.CopyTo(result, 0);
+            return result;
+        }
+
+        public byte[] ProduceByteArray(int start)
+        {
+            var length = data.Length - start;
+            var result = new byte[length];
+            Array.Copy(data, start, result, 0, length);
             return result;
         }
 

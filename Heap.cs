@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace SharpDb
@@ -8,7 +9,9 @@ namespace SharpDb
 
         private int heapBlobCount;
 
-        private KeyRandomiser keyRandomiser = new KeyRandomiser();
+        public const int MaxBlobSize = Constants.PageSize - 13; // 1 for isleaf, 4 for key, 4 for blob size, 4 for next blob pointer. This is going to become painful to maintain
+
+        public int HeapBlobCount { get => heapBlobCount; }
 
         public Heap(Node treeRoot, int heapBlobCount)
         {
@@ -18,59 +21,94 @@ namespace SharpDb
 
         public NodeKey ModifyHeapBlob(NodeKey nodeKey, byte[] data)
         {
-            var blobs = GetBlobs(nodeKey);
-            // To do this we need to have a way of modifying data on the B-Tree
+            var blobList = GetBlobs(nodeKey);
+            var blobs = blobList.Blobs;
+            if (data.Length > blobList.ByteCount)
+            {
+                var neededBytes = data.Length - blobList.ByteCount;
+                var neededPages = neededBytes / MaxBlobSize;
+                for (var i = 0; i < neededPages; i++)
+                {
+                    // TODO
+                }
+            }
+
+            return 0;
         }
 
-        public NodeKey AddHeapBlob(byte[] data)
+        public NodeKey InsertData(byte[] data)
         {
+            var neededFullBlobs = (data.Length / MaxBlobSize);
+            var lastBlobSize = data.Length % MaxBlobSize;
             heapBlobCount++;
-            var nodeKey = keyRandomiser.GetKeyFromId(heapBlobCount);
-            bTree.InsertData(nodeKey, data);
-            return nodeKey;
+            NodeKey startKey = heapBlobCount;
+            NodeKey currentKey = startKey;
+            NodeKey nextKey = 0;
+            var blobData = neededFullBlobs > 0 ? new byte[MaxBlobSize + 4] : null;
+            byte[] nextKeyBytes = null;
+            for (var i = 0; i < neededFullBlobs; i++)
+            {
+                heapBlobCount++;
+                nextKey = heapBlobCount;
+                nextKeyBytes = Serializer.SerializeInt((int)nextKey);
+                nextKeyBytes.CopyTo(blobData, 0);
+                Array.Copy(data, i * MaxBlobSize, blobData, 4, MaxBlobSize);
+                bTree.InsertData(currentKey, blobData);
+                currentKey = nextKey;
+            }
+
+            blobData = new byte[lastBlobSize + 4];
+            nextKeyBytes = Serializer.SerializeInt(0);
+            nextKeyBytes.CopyTo(blobData, 0);
+            Array.Copy(data, neededFullBlobs * MaxBlobSize, blobData, 4, lastBlobSize);
+            bTree.InsertData(currentKey, blobData);
+            return startKey;
         }
 
         public Blob GetHeapBlob(NodeKey nodeKey)
         {
-            var blobs = GetBlobs(nodeKey);
+            var blobList = GetBlobs(nodeKey);
             var bytes = new List<byte>();
-            foreach (var blob in blobs)
+            foreach (var blob in blobList.Blobs)
             {
-                bytes.AddRange(blob.ProduceByteArray());
+                bytes.AddRange(blob.ProduceByteArray(4));
             }
 
             return new Blob(bytes.ToArray());
         }
 
-        private List<Blob> GetBlobs(NodeKey nodeKey)
+        public void SaveHeap() => bTree.SaveNodes();
+
+        private BlobList GetBlobs(NodeKey nodeKey)
         {
             var baseBlob = bTree.GetData(nodeKey);
-            var result = new List<Blob>();
-            result.Add(baseBlob);
+            var blobs = new List<Blob>();
+            var byteCount = 0;
+            blobs.Add(baseBlob);
             var nextNode = GetNextNodeKey(baseBlob);
             while (nextNode != 0)
             {
                 var nextBlob = bTree.GetData(nextNode);
-                result.Add(nextBlob);
+                blobs.Add(nextBlob);
+                byteCount += nextBlob.ByteCount;
                 nextNode = GetNextNodeKey(nextBlob);
             }
 
-            return result;
+            return new BlobList { Blobs = blobs, ByteCount = byteCount };
         }
 
         private NodeKey GetNextNodeKey(Blob blob)
         {
-            var linkData = blob.ProduceByteArray(0, 5);
+            var linkData = blob.ProduceByteArray(0, 4);
             var index = 0;
-            var hasNextBlob = Serializer.DeserilizeBool(linkData, ref index);
-            if (hasNextBlob)
-            {
-                return Serializer.DeserializeInt(linkData, ref index);
-            }
-            else
-            {
-                return 0;
-            }
+            return Serializer.DeserializeInt(linkData, ref index);
+        }
+
+        private class BlobList
+        {
+            public List<Blob> Blobs { get; set; }
+
+            public int ByteCount { get; set; }
         }
     }
 }

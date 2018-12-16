@@ -10,6 +10,77 @@ namespace SharpDb
     {
         public static void Main()
         {
+            using (var dbFile = MemoryMappedFile.CreateFromFile("Db", FileMode.OpenOrCreate, "Db", Constants.DbMaxSize))
+            {
+                Pager.Init(dbFile);
+                var pager = Pager.Get();
+                var rng = new Random();
+                Node root = new LeafNode();
+                var rootIndex = pager.NewNodeIndex();
+                root.PageIndex = rootIndex;
+                pager.SaveNode(root);
+
+                var heap = new Heap(root, 0);
+
+                var stringBytes = new byte[20000000];
+                rng.NextBytes(stringBytes);
+                var index = 0;
+                var largeString = Serializer.DeserilizeChar(stringBytes, 20000000, ref index);
+
+                var heapBlobKey = heap.InsertData(stringBytes);
+                var blobCount = heap.HeapBlobCount;
+                heap.SaveHeap();
+
+                root = pager.LoadNode(rootIndex);
+                heap = new Heap(root, blobCount);
+                var stringBlob = heap.GetHeapBlob(heapBlobKey);
+                Console.WriteLine(stringBlob.ByteCount);
+                index = 0;
+                var retrievedString = Serializer.DeserilizeChar(stringBlob.ProduceByteArray(), 20000000, ref index);
+                Console.WriteLine(retrievedString == largeString);
+            }
+        }
+
+        public static void Test09()
+        {
+            using (var dbFile = MemoryMappedFile.CreateFromFile("Db", FileMode.OpenOrCreate, "Db", Constants.DbMaxSize))
+            {
+                Pager.Init(dbFile);
+                var pager = Pager.Get();
+                var rng = new Random();
+                Node root = new LeafNode();
+                var rootIndex = pager.NewNodeIndex();
+                root.PageIndex = rootIndex;
+                pager.SaveNode(root);
+                var bTree = new BTree(root);
+                for (var i = 0; i < 100; i++)
+                {
+                    var byteArray = new byte[200];
+                    rng.NextBytes(byteArray);
+                    rng.NextBytes(byteArray);
+                    bTree.InsertData(i, byteArray);
+                    if (i == 45)
+                    {
+                        Console.WriteLine(string.Join(",", byteArray));
+                        Console.WriteLine();
+                    }
+                }
+
+                bTree.SaveNodes();
+                root = pager.LoadNode(rootIndex);
+                bTree = new BTree(root);
+                var initialBlob = bTree.GetData(45);
+                Console.WriteLine(string.Join(",", initialBlob.ProduceByteArray()));
+                Console.WriteLine();
+
+                var modifData = new byte[200];
+                rng.NextBytes(modifData);
+                Console.WriteLine(string.Join(",", modifData));
+                Console.WriteLine();
+                bTree.ReplaceData(45, modifData);
+                var modifBlob = bTree.GetData(45);
+                Console.WriteLine(string.Join(",", modifBlob.ProduceByteArray()));
+            }
         }
 
         public static void Test08()
@@ -46,21 +117,6 @@ namespace SharpDb
             foreach (var obj in rokurouObjects)
             {
                 Console.WriteLine(obj);
-            }
-        }
-
-        public static void Test07()
-        {
-            var randomiser = new KeyRandomiser();
-            for (var i = -1000000; i < 1000000; i++)
-            {
-                var nodeKey = randomiser.GetKeyFromId(i);
-                var hopefullyI = randomiser.GetIdFromNodeKey(nodeKey);
-                if (i != hopefullyI)
-                {
-                    Console.WriteLine(i + " became " + hopefullyI);
-                    break;
-                }
             }
         }
 
@@ -161,10 +217,11 @@ namespace SharpDb
 
                 bTree.SaveNodes();
 
+                bTree = new BTree(pager.LoadNode(0));
                 var data = bTree.GetData(chosenKey);
                 Console.WriteLine(chosenKey);
                 Console.WriteLine(chosenKey % 256);
-                Console.WriteLine(string.Join(",", data));
+                Console.WriteLine(string.Join(",", data.ProduceByteArray()));
             }
         }
 
@@ -178,8 +235,8 @@ namespace SharpDb
             intNode.AddNode(104, 25);
             intNode.AddNode(105, 30);
             var split = intNode.Split();
-            Console.WriteLine(intNode.GetNodeIndexForKey(28));
-            Console.WriteLine(split.GetNodeIndexForKey(28));
+            Console.WriteLine(intNode.GetPageIndexForKey(28));
+            Console.WriteLine(split.GetPageIndexForKey(28));
             var leafNode = new LeafNode();
             leafNode.AddDataRow(50, new byte[] { 1 });
             leafNode.AddDataRow(100, new byte[] { 2 });
@@ -192,7 +249,7 @@ namespace SharpDb
             Console.WriteLine(leafNode.GetDataRow(350)[0]);
             var leafSplit = leafNode.Split();
             Console.WriteLine(leafNode.GetDataRow(350)[0]);
-            Console.WriteLine(leafSplit.GetDataRow(350).Length);
+            Console.WriteLine(leafSplit.GetDataRow(350).ByteCount);
         }
 
         public static void Test02()
@@ -205,10 +262,10 @@ namespace SharpDb
             node.AddNode(104, 25);
             node.AddNode(105, 30);
             node.AddNode(106, 28);
-            Console.WriteLine(node.GetNodeIndexForKey(18));
+            Console.WriteLine(node.GetPageIndexForKey(18));
             var serialized = node.Serialize();
             node = new InternalNode(5, serialized);
-            Console.WriteLine(node.GetNodeIndexForKey(18));
+            Console.WriteLine(node.GetPageIndexForKey(18));
         }
 
         public static void Test01()

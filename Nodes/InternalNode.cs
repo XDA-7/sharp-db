@@ -26,7 +26,7 @@ namespace SharpDb
             }
         }
 
-        public PageIndex GetNodeIndexForKey(NodeKey key)
+        public PageIndex GetPageIndexForKey(NodeKey key)
         {
             var upperRange = upperKeyValues.GetViewBetween(key, upperKeyValues.Max);
             return nodeIndices[upperRange.Min];

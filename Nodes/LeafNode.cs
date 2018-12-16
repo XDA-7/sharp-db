@@ -26,12 +26,19 @@ namespace SharpDb
 
         public void AddDataRow(NodeKey key, Blob data)
         {
-            bytesUsed += dataRowHeaderSize + data.Length;
+            bytesUsed += dataRowHeaderSize + data.ByteCount;
             dataRows.Add(key, data);
             dataKeys.Add(key);
         }
 
-        public bool CanFitDataRow(byte[] data) => (bytesUsed + data.Length + dataRowHeaderSize) < Constants.PageSize;
+        public void ReplaceDataRow(NodeKey key, byte[] data)
+        {
+            var blob = new Blob(data);
+            dataRows.Remove(key);
+            dataRows.Add(key, blob);
+        }
+
+        public bool CanFitDataRow(byte[] data) => (bytesUsed + data.Length + dataRowHeaderSize) <= Constants.PageSize;
 
         // Split off and return the lower half in a new node
         // We split off the lower half so that data about the upper key value of this node does not change
